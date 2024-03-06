@@ -39,14 +39,14 @@ class Layer:
 
 class Attention(Layer):
 
-    def __init__(self, n):
+    def __init__(self, d, k):
         """
         Your code here
         """
         self.softmax = Softmax()
-        B = np.zeros( (n, n, n) )
+        self.D = np.zeros( (k, d) )
         i1,i2 = np.tril_indices(n,-1)
-        B[i1,i2] -= np.inf
+        self.D[i1,i2] -= np.inf
         return
 
         
@@ -56,15 +56,19 @@ class Attention(Layer):
         Your code here
         """
         self.x = x
-        A = self.softmax.forward()
-        return
+        A = self.softmax.forward(x.T @ W_Q.T @ W_K @ x + self.D)
+        x_l = x + W_O.T @ W_V @ x @ A
+        return x_l
 
 
     def backward(self,grad):
         """
         Your code here
         """
-        return
+        g_OV = W_V.T @ W_O @ grad
+        g_S = self.softmax.backward(x.T @ g_OV)
+        bA_l = grad + g_OV @  A.T + W_K.T @ W_Q @ x @ g_S + W_Q.T @ W_K @ x @ g_S.T
+        return bA_l
     
 
 
