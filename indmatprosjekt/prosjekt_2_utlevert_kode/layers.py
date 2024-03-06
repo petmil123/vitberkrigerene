@@ -43,7 +43,7 @@ class Attention(Layer):
         """
         Your code here
         d: debth
-        k: columns in W_O, W_V, osv.
+        k: rows in W_O, W_V, osv.
         """
         self.softmax = Softmax()
 
