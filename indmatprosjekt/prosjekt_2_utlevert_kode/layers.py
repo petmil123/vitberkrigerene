@@ -38,71 +38,95 @@ class Layer:
 
 
 class Attention(Layer):
-
+    #TODO: Må lages så den tåler batches
     def __init__(self, d, k, init_scale = 0.1):
         """
         Your code here
-        d: debth
-        k: rows in W_O, W_V, osv.
+        d: depth
+        k: input length (number of digits in x)
         """
         self.softmax = Softmax()
 
-        #Initialize D
-        self.D = np.zeros( (k, d) )
-        i1,i2 = np.tril_indices(n,-1)
-        self.D[i1,i2] -= np.inf
+        
 
         #Initalize w-s
-        self.w_Q = np.random.randn(d, k)*init_scale
-        self.w_K = np.random.randn(d, k)*init_scale
-        self.w_O = np.random.randn(d, k)*init_scale
-        self.w_V = np.random.randn(d, k)*init_scale
+        self.w_Q = np.random.randn(k, d)*init_scale
+        self.w_K = np.random.randn(k, d)*init_scale
+        self.w_O = np.random.randn(k, d)*init_scale
+        self.w_V = np.random.randn(k, d)*init_scale
         return
 
         
 
     def forward(self,x):
         """
-        Your code here
+        Input: x, shape (b,d,n) where b, d always constant, but n <= n_max
+
+        Output: x_l, shape (b,d,n), same as input
         """
+        n = x.shape[-1]
+        #Initialize D
+        D = np.zeros( (n, n) )
+        i1,i2 = np.tril_indices(n,-1)
+        D[i1,i2] -= np.inf
         self.x = x
-        self.A = self.softmax.forward(x.T @ self.w_Q.T @ self.w_K @ x + self.D)
-        x_l = x + self.w_O.T @ self.w_V @ x @ self.A
+        # Adjusting param size to input
+        n = x.shape[-1]
+
+
+
+
+        self.x_T = np.transpose(x, axes=(0,2,1))
+
+        #prod = x.T @ self.w_Q.T @ self.w_K @ x
+        prod = np.einsum('bad,ds,sq,bqk -> bak',self.x_T,self.w_Q.T, self.w_K, x, optimize=True)
+        A = self.softmax.forward(prod + D)
+        self.A = A
+        # prod2 = self.w_O.T @ self.w_V @ x @ self.A
+        prod2 = np.einsum('dk, kd, bds, bsn -> bdn', self.w_O.T, self.w_V, x, A, optimize=True)
+        x_l = x + prod2
         return x_l
 
 
     def backward(self,grad):
+        #TODO: Gjør skikkelig
         """
         Your code here
         """
+        
         g_OV = self.w_V.T @ self.w_O @ grad
-        g_S = self.softmax.backward(x.T @ g_OV)
-        bA_l = grad + g_OV @  self.A.T + self.w_K.T @ self.w_Q @ x @ g_S + self.w_Q.T @ self.w_K @ x @ g_S.T
+        g_S = self.softmax.backward(self.x_T @ g_OV)
+        bA_l = grad + g_OV @  self.A.T + self.w_K.T @ self.w_Q @ self.x @ g_S + self.w_Q.T @ self.w_K @ self.x @ g_S.T
         return bA_l
     
 
 
 class Softmax(Layer):
 
-    def __init__(self,your_arguments_here):
-        """
-        Your code here
-        """
+    def __init__(self):
+        #TODO: Finne ut om vi må sette noen parametre her.
+        self.epsilon = 1e-8
         return
 
     
     def forward(self,x):
+        print(f"softmax input shape: {x.shape}")
         P = np.exp(x - x.max(axis=1, keepdims=True))
         self.P = P
         Q = np.sum(P, axis=1, keepdims=True)
         self.Q = Q
-        self.epsilon = 10**(-8)
         z_l =  P / (Q + self.epsilon)
         self.z_l = z_l
         return z_l
 
 
     def backward(self,grad):
+        print(f"z_l:{self.z_l.shape}")
+        print(f"grad: {grad.shape}") # 6,8,6
+        print(f"P: {self.P.shape}")
+        print(f"Q: {self.Q.shape}")
+
+
         return grad * self.z_l - np.sum(grad * (self.P / (self.Q * self.Q + self.epsilon)), axis=0, keepdims=True) * self.P
 
 
@@ -123,7 +147,10 @@ class CrossEntropy(Layer):
         Your code here
         """
         b, m, n = np.shape(x)
+        print(y.shape[-1])
+        x = x[:,:,:y.shape[-1]] #Truncate x to be same size as y
         Y = onehot(y,m)
+        print(f"onehotshape: {Y.shape}")
         self.x = x
         self.Y = Y
         ones = np.ones(m)
@@ -269,8 +296,13 @@ class EmbedPosition(Layer):
         
         b = grad.shape[0]
 
+        
+
+
         #Compute gradient (average over B batches) of loss wrt positional embedding w:
-        self.params['Wp']['d'] = np.zeros_like(self.w)
+        self.params['Wp']['d'] = np.zeros_like(grad[0]) # Kanskje dirty fix
+        print(f"wpd shape: {self.params['Wp']['d'].shape}")
+        print(f"grad shape: {grad.shape}")
         self.params['Wp']['d'] += np.sum(grad,axis=0)/b
 
         #Use backwards pass of the linear layer
