@@ -36,6 +36,6 @@ class NeuralNetwork():
         """
         for layer in self.layers:
             #Check if layer is of class a class that has parameters
-            if isinstance(layer,LinearLayer,EmbedPosition,FeedForward,Attention):
+            if isinstance(layer,(LinearLayer,EmbedPosition,FeedForward,Attention)):
                 layer.step_gd(alpha)
         return
