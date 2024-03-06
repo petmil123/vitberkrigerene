@@ -72,10 +72,11 @@ class Softmax(Layer):
 
     
     def forward(self,x):
-        """
-        Your code here
-        """
-        return
+        P = np.exp(x - x.max(axis=0, keepdims=True))
+        Q = np.sum(P, axis=0, keepdims=True)
+        epsilon = 10**(-8)
+        z_l =  P / (Q + epsilon)
+        return z_l
 
 
     def backward(self,grad):
