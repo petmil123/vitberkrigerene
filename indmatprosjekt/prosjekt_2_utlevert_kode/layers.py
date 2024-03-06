@@ -39,10 +39,24 @@ class Layer:
 
 class Attention(Layer):
 
-    def __init__(self,your_arguments_here):
+    def __init__(self, d, k, init_scale = 0.1):
         """
         Your code here
+        d: debth
+        k: rows in W_O, W_V, osv.
         """
+        self.softmax = Softmax()
+
+        #Initialize D
+        self.D = np.zeros( (k, d) )
+        i1,i2 = np.tril_indices(n,-1)
+        self.D[i1,i2] -= np.inf
+
+        #Initalize w-s
+        self.w_Q = np.random.randn(d, k)*init_scale
+        self.w_K = np.random.randn(d, k)*init_scale
+        self.w_O = np.random.randn(d, k)*init_scale
+        self.w_V = np.random.randn(d, k)*init_scale
         return
 
         
@@ -51,14 +65,20 @@ class Attention(Layer):
         """
         Your code here
         """
-        return
+        self.x = x
+        self.A = self.softmax.forward(x.T @ self.w_Q.T @ self.w_K @ x + self.D)
+        x_l = x + self.w_O.T @ self.w_V @ x @ self.A
+        return x_l
 
 
     def backward(self,grad):
         """
         Your code here
         """
-        return
+        g_OV = self.w_V.T @ self.w_O @ grad
+        g_S = self.softmax.backward(x.T @ g_OV)
+        bA_l = grad + g_OV @  self.A.T + self.w_K.T @ self.w_Q @ x @ g_S + self.w_Q.T @ self.w_K @ x @ g_S.T
+        return bA_l
     
 
 
