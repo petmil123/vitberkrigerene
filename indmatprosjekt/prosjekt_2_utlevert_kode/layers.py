@@ -92,42 +92,49 @@ class Softmax(Layer):
 
     
     def forward(self,x):
-        """
-        Your code here
-        """
-        return
+        P = np.exp(x - x.max(axis=1, keepdims=True))
+        self.P = P
+        Q = np.sum(P, axis=1, keepdims=True)
+        self.Q = Q
+        self.epsilon = 10**(-8)
+        z_l =  P / (Q + self.epsilon)
+        self.z_l = z_l
+        return z_l
 
 
     def backward(self,grad):
-        """
-        Your code here
-        """
-        return
+        return grad * self.z_l - np.sum(grad * (self.P / (self.Q * self.Q + self.epsilon)), axis=0, keepdims=True) * self.P
 
 
 
 class CrossEntropy(Layer):
 
-    def __init__(self,your_arguments_here):
+    def __init__(self):
         """
         Your code here
         """
+        self.epsilon = 1e-8
         return
 
         
 
-    def forward(self,x):
+    def forward(self, x, y):
         """
         Your code here
         """
-        return
+        b, m, n = np.shape(x)
+        Y = onehot(y,m)
+        self.x = x
+        self.Y = Y
+        ones = np.ones(m)
+        p = np.transpose(ones) @ np.multiply(x, Y)
+        q = -np.log(p)
+        return np.mean(q)
 
 
     def backward(self):
-        """
-        Your code here
-        """
-        return
+        n = self.x.shape[-1]
+        return -1/n*(self.Y/(self.x+self.epsilon))
     
 
 
@@ -158,11 +165,12 @@ class LinearLayer(Layer):
         y: output, array of shape (batch_size, output_size, n) = (b,o,n)
         """
 
+        # NOTE: Stores for backward
         self.x = x
         
         #Return output of layer
         #y = w@x
-        y = np.einsum('od,bdn->bon',self.params['w']['w'],x)
+        y = np.einsum('od,bdn->bon',self.params["w"]['w'],x)
         return y
         
     def backward(self,grad):
