@@ -82,7 +82,7 @@ class Attention(Layer):
         prod = np.einsum('bad,ds,sq,bqk -> bak',self.x_T,self.w_Q.T, self.w_K, x, optimize=True)
         A = self.softmax.forward(prod + D)
         self.A = A
-        print(A.shape)
+        print(f"Shape of A: {A.shape}")
         # prod2 = self.w_O.T @ self.w_V @ x @ self.A
         prod2 = np.einsum('dk, kd, bds, bsn -> bdn', self.w_O.T, self.w_V, x, A, optimize=True)
         x_l = x + prod2
@@ -94,12 +94,19 @@ class Attention(Layer):
         """
         Your code here
         """
-        
-        g_OV = self.w_V.T @ self.w_O @ grad
+        # g_OV = self.w_V.T @ self.w_O @ grad remove later
+        g_OV = np.einsum("dk,kd,bdn -> bdn", self.w_V.T, self.w_O, grad)
         print(f"g_OV: {g_OV.shape}")
-        g_S = self.softmax.backward(self.x_T @ g_OV)
+        g_S_int = np.einsum("bnd, bdk -> bnk", self.x_T, g_OV)
+        g_S = self.softmax.backward(g_S_int)
         print(f"g_S: {g_S.shape}")
-        bA_l = grad + g_OV @  self.A.T + self.w_K.T @ self.w_Q @ self.x @ g_S + self.w_Q.T @ self.w_K @ self.x @ g_S.T
+
+        A_T = np.transpose(self.A,(0,2,1))
+        g_S_T = np.transpose(g_S,(0,2,1))
+        prod = np.einsum("bdn, bnm -> bdm", g_OV, A_T) # g_OV @  self.A.T
+        prod2 = np.einsum("dk,ks,bsn,bnm -> bdm", self.w_K.T, self.w_Q, self.x, g_S) #self.w_K.T @ self.w_Q @ self.x @ g_S
+        prod3 = np.einsum("dk, ks, bsn, bnm -> bdm", self.w_Q.T, self.w_K, self.x, g_S_T) # self.w_Q.T @ self.w_K @ self.x @ g_S.T
+        bA_l = grad + prod + prod2 + prod3
         return bA_l
     
 
@@ -152,21 +159,24 @@ class CrossEntropy(Layer):
         b, m, n = np.shape(x)
         #print(y.shape[-1])
         self.x_tilde = x
-        x = self.x_tilde[:,:,-y.shape[-1]:] #Truncate x to be same size as y
+        x_trunc = self.x_tilde[:,:,-y.shape[-1]:] #Truncate x to be same size as y
         Y = onehot(y,m)
         print(f"onehotshape: {Y.shape}")
         print(f"x shape: {x.shape}")
-        self.x = x
+        self.x = x_trunc
         self.Y = Y
         ones = np.ones(m)
-        p = np.transpose(ones) @ np.multiply(x, Y)
+        p = np.transpose(ones) @ np.multiply(x_trunc, Y)
         q = -np.log(p)
         return np.mean(q)
 
 
     def backward(self):
-        n = self.x.shape[-1]
-        return -1/n*(self.Y/(self.x+self.epsilon))
+        n = self.x_tilde.shape[-1]
+        Z = np.zeros_like(self.x_tilde)
+        Z[:,:,-self.Y.shape[-1]:] = self.Y
+        print(Z[:,:,0])
+        return -1/n*(Z/(self.x_tilde+self.epsilon))
     
 
 
