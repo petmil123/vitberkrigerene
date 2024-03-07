@@ -38,14 +38,14 @@ class Layer:
         for param in self.params:
             self.params[param]['w'] -= alpha*self.params[param]['d']
     
-    def step_adam(self, alpha,beta1, beta2, epsilon, grad):
+    def step_adam(self, grad):
         G_j= self.backward(grad)
-        self.M_j = beta1*self.M_j +(1-beta1)*G_j
-        self.V_j = beta2*self.V_j + (1-beta2)*(G_j*G_j)
-        M_j_hat = (1/(1-beta1**self.j))*self.M_j
-        V_j_hat = (1/(1-beta2**self.j))*self.V_j
+        self.M_j = self.beta1*self.M_j +(1-self.beta1)*G_j
+        self.V_j = self.beta2*self.V_j + (1-self.beta2)*(G_j*G_j)
+        M_j_hat = (1/(1-self.beta1**self.j))*self.M_j
+        V_j_hat = (1/(1-self.beta2**self.j))*self.V_j
         for param in self.params:
-            self.params[param]['w'] = self.params[param]['w']- alpha*(M_j_hat/(np.sqrt(V_j_hat)+epsilon))
+            self.params[param]['w'] = self.params[param]['w']- self.alpha*(M_j_hat/(np.sqrt(V_j_hat)+self.epsilon))
 
 
 
@@ -65,10 +65,10 @@ class Attention(Layer):
         w_O = np.random.randn(k, d)*init_scale
         w_V = np.random.randn(k, d)*init_scale
 
-        self.params = {'w_Q':{'w':w_Q,'d':d}, 
-                       'w_K':{'w':w_K,'d':d}, 
-                       'w_O':{'w':w_O,'d':d}, 
-                       'w_V':{'w':w_V,'d':d}}
+        self.params = {'w_Q':{'w':w_Q,'d':np.zeros_like(w_Q)}, 
+                       'w_K':{'w':w_K,'d':np.zeros_like(w_K)}, 
+                       'w_O':{'w':w_O,'d':np.zeros_like(w_O)}, 
+                       'w_V':{'w':w_V,'d':np.zeros_like(w_V)}}
         return
 
         
@@ -87,9 +87,6 @@ class Attention(Layer):
         self.x = x
         # Adjusting param size to input
         n = x.shape[-1]
-
-        for param in self.params:
-            print(param)
 
         # get w-s from dictionary
         w_Q = self.params['w_Q']['w']
@@ -119,6 +116,7 @@ class Attention(Layer):
         w_O = self.params['w_O']['w']
         w_V = self.params['w_V']['w']
 
+
         # g_OV = self.w_V.T @ self.w_O @ grad remove later
         g_OV = np.einsum("dk,kd,bdn -> bdn", w_V.T, w_O, grad)
         g_S_int = np.einsum("bnd, bdk -> bnk", self.x_T, g_OV)
@@ -130,6 +128,15 @@ class Attention(Layer):
         prod2 = np.einsum("dk,ks,bsn,bnm -> bdm", w_K.T, w_Q, self.x, g_S) #self.w_K.T @ self.w_Q @ self.x @ g_S
         prod3 = np.einsum("dk, ks, bsn, bnm -> bdm", w_Q.T, w_K, self.x, g_S_T) # self.w_Q.T @ self.w_K @ self.x @ g_S.T
         bA_l = grad + prod + prod2 + prod3
+
+        b = self.x.shape[0]
+        grad_T = np.transpose(grad, (0,2,1))
+
+        self.params['W_Q']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_K, self.x, g_S_T, self.x_T)/b
+        self.params['W_K']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_Q, self.x, g_S, self.x_T)/b
+        self.params['W_O']['d'] = np.einsum('kd, bdn, nm, bme ->ke', w_V, self.x, self.A, grad_T)/b
+        self.params['W_V']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_O, grad, A_T, self.x_T)/b
+
         return bA_l
     
 
