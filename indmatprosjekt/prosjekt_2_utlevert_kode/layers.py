@@ -7,6 +7,10 @@ class Layer:
     Base class for layers in the neural network with forward and backward pass.
     """
     def __init__(self):
+        self.epsilon = 1e-8
+        self.alpha = .01
+        self.beta1 = .9
+        self.beta2 = .999
         
         return
 
@@ -33,6 +37,16 @@ class Layer:
         """
         for param in self.params:
             self.params[param]['w'] -= alpha*self.params[param]['d']
+    
+    def step_adam(self, alpha,beta1, beta2, epsilon, grad):
+        G_j= self.backward(grad)
+        self.M_j = beta1*self.M_j +(1-beta1)*G_j
+        self.V_j = beta2*self.V_j + (1-beta2)*(G_j*G_j)
+        M_j_hat = (1/(1-beta1**self.j))*self.M_j
+        V_j_hat = (1/(1-beta2**self.j))*self.V_j
+        for param in self.params:
+            self.params[param]['w'] = self.params[param]['w']- alpha*(M_j_hat/(np.sqrt(V_j_hat)+epsilon))
+
 
 
 
