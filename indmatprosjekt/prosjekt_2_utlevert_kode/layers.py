@@ -52,22 +52,23 @@ class Layer:
 
 
 class Attention(Layer):
-    #TODO: Må lages så den tåler batches
     def __init__(self, d, k, init_scale = 0.1):
         """
-        Your code here
         d: depth
         k: input length (number of digits in x)
         """
         self.softmax = Softmax()
 
-        
-
         #Initalize w-s
-        self.w_Q = np.random.randn(k, d)*init_scale
-        self.w_K = np.random.randn(k, d)*init_scale
-        self.w_O = np.random.randn(k, d)*init_scale
-        self.w_V = np.random.randn(k, d)*init_scale
+        w_Q = np.random.randn(k, d)*init_scale
+        w_K = np.random.randn(k, d)*init_scale
+        w_O = np.random.randn(k, d)*init_scale
+        w_V = np.random.randn(k, d)*init_scale
+
+        self.params = {'w_Q':{'w':w_Q,'d':d}, 
+                       'w_K':{'w':w_K,'d':d}, 
+                       'w_O':{'w':w_O,'d':d}, 
+                       'w_V':{'w':w_V,'d':d}}
         return
 
         
@@ -87,17 +88,23 @@ class Attention(Layer):
         # Adjusting param size to input
         n = x.shape[-1]
 
+        for param in self.params:
+            print(param)
 
-
+        # get w-s from dictionary
+        w_Q = self.params['w_Q']['w']
+        w_K = self.params['w_K']['w']
+        w_O = self.params['w_O']['w']
+        w_V = self.params['w_V']['w']
 
         self.x_T = np.transpose(x, axes=(0,2,1))
 
         #prod = x.T @ self.w_Q.T @ self.w_K @ x
-        prod = np.einsum('bad,ds,sq,bqk -> bak',self.x_T,self.w_Q.T, self.w_K, x, optimize=True)
+        prod = np.einsum('bad,ds,sq,bqk -> bak',self.x_T,w_Q.T, w_K, x, optimize=True)
         A = self.softmax.forward(prod + D)
         self.A = A
         # prod2 = self.w_O.T @ self.w_V @ x @ self.A
-        prod2 = np.einsum('dk, kd, bds, bsn -> bdn', self.w_O.T, self.w_V, x, A, optimize=True)
+        prod2 = np.einsum('dk, kd, bds, bsn -> bdn', w_O.T, w_V, x, A, optimize=True)
         x_l = x + prod2
         return x_l
 
@@ -107,16 +114,21 @@ class Attention(Layer):
         """
         Your code here
         """
+        w_Q = self.params['w_Q']['w']
+        w_K = self.params['w_K']['w']
+        w_O = self.params['w_O']['w']
+        w_V = self.params['w_V']['w']
+
         # g_OV = self.w_V.T @ self.w_O @ grad remove later
-        g_OV = np.einsum("dk,kd,bdn -> bdn", self.w_V.T, self.w_O, grad)
+        g_OV = np.einsum("dk,kd,bdn -> bdn", w_V.T, w_O, grad)
         g_S_int = np.einsum("bnd, bdk -> bnk", self.x_T, g_OV)
         g_S = self.softmax.backward(g_S_int)
 
         A_T = np.transpose(self.A,(0,2,1))
         g_S_T = np.transpose(g_S,(0,2,1))
         prod = np.einsum("bdn, bnm -> bdm", g_OV, A_T) # g_OV @  self.A.T
-        prod2 = np.einsum("dk,ks,bsn,bnm -> bdm", self.w_K.T, self.w_Q, self.x, g_S) #self.w_K.T @ self.w_Q @ self.x @ g_S
-        prod3 = np.einsum("dk, ks, bsn, bnm -> bdm", self.w_Q.T, self.w_K, self.x, g_S_T) # self.w_Q.T @ self.w_K @ self.x @ g_S.T
+        prod2 = np.einsum("dk,ks,bsn,bnm -> bdm", w_K.T, w_Q, self.x, g_S) #self.w_K.T @ self.w_Q @ self.x @ g_S
+        prod3 = np.einsum("dk, ks, bsn, bnm -> bdm", w_Q.T, w_K, self.x, g_S_T) # self.w_Q.T @ self.w_K @ self.x @ g_S.T
         bA_l = grad + prod + prod2 + prod3
         return bA_l
     
