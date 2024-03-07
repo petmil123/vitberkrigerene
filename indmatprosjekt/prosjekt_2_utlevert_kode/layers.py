@@ -160,7 +160,7 @@ class Softmax(Layer):
 
 
     def backward(self,grad):
-        return grad * self.z_l - np.sum(grad * (self.P / (self.Q * self.Q + self.epsilon)), axis=0, keepdims=True) * self.P
+        return grad * self.z_l - np.sum(grad * (self.P / (self.Q * self.Q + self.epsilon)), axis=1, keepdims=True) * self.P
 
 
 
