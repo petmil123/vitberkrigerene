@@ -186,7 +186,8 @@ class CrossEntropy(Layer):
         self.x = x_trunc
         self.Y = Y
         ones = np.ones(m)
-        p = np.transpose(ones) @ np.multiply(x_trunc, Y)
+        #p = np.transpose(ones) @ np.multiply(x_trunc, Y)
+        p = ones.T @ (x_trunc*Y)
         q = -np.log(p)
         return np.mean(q)
 
