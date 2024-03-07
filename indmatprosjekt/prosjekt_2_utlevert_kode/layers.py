@@ -51,10 +51,10 @@ class Attention(Layer):
         w_O = np.random.randn(k, d)*init_scale
         w_V = np.random.randn(k, d)*init_scale
 
-        self.params = {'w_Q':{'w':w_Q,'d':None}, 
-                       'w_K':{'w':w_K,'d':None}, 
-                       'w_O':{'w':w_O,'d':None}, 
-                       'w_V':{'w':w_V,'d':None}}
+        self.params = {'w_Q':{'w':w_Q,'d':d}, 
+                       'w_K':{'w':w_K,'d':d}, 
+                       'w_O':{'w':w_O,'d':d}, 
+                       'w_V':{'w':w_V,'d':d}}
         return
 
         
@@ -105,7 +105,7 @@ class Attention(Layer):
         w_K = self.params['w_K']['w']
         w_O = self.params['w_O']['w']
         w_V = self.params['w_V']['w']
-        
+
         # g_OV = self.w_V.T @ self.w_O @ grad remove later
         g_OV = np.einsum("dk,kd,bdn -> bdn", w_V.T, w_O, grad)
         print(f"g_OV: {g_OV.shape}")
