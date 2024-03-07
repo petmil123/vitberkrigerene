@@ -47,13 +47,16 @@ class Attention(Layer):
         """
         self.softmax = Softmax()
 
-        
-
         #Initalize w-s
-        self.w_Q = np.random.randn(k, d)*init_scale
-        self.w_K = np.random.randn(k, d)*init_scale
-        self.w_O = np.random.randn(k, d)*init_scale
-        self.w_V = np.random.randn(k, d)*init_scale
+        w_Q = np.random.randn(k, d)*init_scale
+        w_K = np.random.randn(k, d)*init_scale
+        w_O = np.random.randn(k, d)*init_scale
+        w_V = np.random.randn(k, d)*init_scale
+
+        self.params = {"w":{'w_Q':w_Q,'d':None}}
+        self.params = {"w":{'w_K':w_K,'d':None}}
+        self.params = {"w":{'w_O':w_O,'d':None}}
+        self.params = {"w":{'w_V':w_V,'d':None}}
         return
 
         
@@ -73,18 +76,21 @@ class Attention(Layer):
         # Adjusting param size to input
         n = x.shape[-1]
 
-
-
+        # get w-s from dictionary
+        w_Q = self.params['w']['w_Q']
+        w_K = self.params['w']['w_K']
+        w_O = self.params['w']['w_O']
+        w_V = self.params['w']['w_V']
 
         self.x_T = np.transpose(x, axes=(0,2,1))
 
         #prod = x.T @ self.w_Q.T @ self.w_K @ x
-        prod = np.einsum('bad,ds,sq,bqk -> bak',self.x_T,self.w_Q.T, self.w_K, x, optimize=True)
+        prod = np.einsum('bad,ds,sq,bqk -> bak',self.x_T,w_Q.T, w_K, x, optimize=True)
         A = self.softmax.forward(prod + D)
         self.A = A
         print(f"Shape of A: {A.shape}")
         # prod2 = self.w_O.T @ self.w_V @ x @ self.A
-        prod2 = np.einsum('dk, kd, bds, bsn -> bdn', self.w_O.T, self.w_V, x, A, optimize=True)
+        prod2 = np.einsum('dk, kd, bds, bsn -> bdn', w_O.T, w_V, x, A, optimize=True)
         x_l = x + prod2
         return x_l
 
