@@ -38,10 +38,8 @@ class Layer:
 
 
 class Attention(Layer):
-    #TODO: Må lages så den tåler batches
     def __init__(self, d, k, init_scale = 0.1):
         """
-        Your code here
         d: depth
         k: input length (number of digits in x)
         """
