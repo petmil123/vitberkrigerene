@@ -8,7 +8,7 @@ class Layer:
     """
     def __init__(self):
         self.epsilon = 1e-8
-        self.alpha = .01
+        # self.alpha = .01 Tror denne med fordel ikke settes her
         self.beta1 = .9
         self.beta2 = .999
         
@@ -38,14 +38,15 @@ class Layer:
         for param in self.params:
             self.params[param]['w'] -= alpha*self.params[param]['d']
     
-    def step_adam(self, grad):
-        G_j= self.backward(grad)
-        self.M_j = self.beta1*self.M_j +(1-self.beta1)*G_j
-        self.V_j = self.beta2*self.V_j + (1-self.beta2)*(G_j*G_j)
-        M_j_hat = (1/(1-self.beta1**self.j))*self.M_j
-        V_j_hat = (1/(1-self.beta2**self.j))*self.V_j
+    def step_adam(self, alpha, j):
         for param in self.params:
-            self.params[param]['w'] = self.params[param]['w']- self.alpha*(M_j_hat/(np.sqrt(V_j_hat)+self.epsilon))
+            self.params[param]['m'] = self.beta1*self.params[param]['m'] + (1-self.beta1)*self.params[param]['d'] # M_j = beta1*M_j-1 + (1-beta1)*G_j
+            self.params[param]['v'] = self.beta2*self.params[param]['v'] + (1-self.beta2)*(self.params[param]['d']*self.params[param]['d']) # V_j = beta2*V_j-1 + (1-beta2)*(G_j*G_J)
+            m_hat = 1/(1-self.beta1**j)*self.params[param]['m']
+            v_hat = 1/(1-self.beta2**j)*self.params[param]['v']
+            self.params[param]['w'] -= alpha*(m_hat / (np.sqrt(v_hat) + self.epsilon))
+
+
 
 
 
@@ -65,10 +66,12 @@ class Attention(Layer):
         w_O = np.random.randn(k, d)*init_scale
         w_V = np.random.randn(k, d)*init_scale
 
-        self.params = {'w_Q':{'w':w_Q,'d':np.zeros_like(w_Q)}, 
-                       'w_K':{'w':w_K,'d':np.zeros_like(w_K)}, 
-                       'w_O':{'w':w_O,'d':np.zeros_like(w_O)}, 
-                       'w_V':{'w':w_V,'d':np.zeros_like(w_V)}}
+        self.params = {'w_Q':{'w':w_Q,'d':np.zeros_like(w_Q), 'm': np.zeros_like(w_Q), 'v': np.zeros_like(w_Q)}, 
+                       'w_K':{'w':w_K,'d':np.zeros_like(w_K), 'm': np.zeros_like(w_K), 'v': np.zeros_like(w_K)}, 
+                       'w_O':{'w':w_O,'d':np.zeros_like(w_O), 'm': np.zeros_like(w_O), 'v': np.zeros_like(w_O)}, 
+                       'w_V':{'w':w_V,'d':np.zeros_like(w_V), 'm': np.zeros_like(w_V), 'v': np.zeros_like(w_V)}}
+        
+        super().__init__()
         return
 
         
@@ -187,8 +190,8 @@ class CrossEntropy(Layer):
         self.Y = Y
         ones = np.ones(m)
         #p = np.transpose(ones) @ np.multiply(x_trunc, Y)
-        p = ones.T @ (x_trunc*Y)
-        q = -np.log(p)
+        p = np.sum(x_trunc*Y, axis=1)
+        q = -np.log(p + self.epsilon)
         return np.mean(q)
 
 
@@ -214,8 +217,8 @@ class LinearLayer(Layer):
         #Initialize weights using a sample from the normal distribution
         #scaled with the init_scale
         self.w = np.random.randn(output_size,input_size)*init_scale
-        self.params = {"w":{'w':self.w,
-                            'd':np.zeros_like(self.w)}}
+        self.params = {"w":{'w':self.w,'d':np.zeros_like(self.w), 'm':np.zeros_like(self.w), 'v':np.zeros_like(self.w)}}
+        super().__init__()
         
 
     def forward(self,x):
@@ -293,7 +296,8 @@ class EmbedPosition(Layer):
         self.w = np.random.randn(d,n_max)*init_scale
 
         #Initialize the parameter dictionary for weight with key "Wp"
-        self.params = {"Wp":{'w':self.w,'d':None}}
+        self.params = {"Wp":{'w':self.w,'d':np.zeros_like(self.w),'m':np.zeros_like(self.w), 'v':np.zeros_like(self.w)}}
+        super().__init__()
 
     def forward(self,X):
 
@@ -353,6 +357,12 @@ class EmbedPosition(Layer):
         #which calls the step_gd() of the base class
         #and does gd for the paramters in the params dict
         super().step_gd(step_size)
+
+    def step_adam(self, alpha, j):
+
+        self.embed.step_adam(alpha, j)
+
+        super().step_adam(alpha, j)
 
 
 
@@ -418,3 +428,7 @@ class FeedForward(Layer):
         #Call the step_gd method of the linear layers
         self.l1.step_gd(step_size)
         self.l2.step_gd(step_size)
+
+    def step_adam(self, alpha, j):
+        self.l1.step_adam(alpha, j)
+        self.l2.step_adam(alpha, j)

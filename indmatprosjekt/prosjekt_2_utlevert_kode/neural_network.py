@@ -39,3 +39,14 @@ class NeuralNetwork():
             if isinstance(layer,(LinearLayer,EmbedPosition,FeedForward,Attention)):
                 layer.step_gd(alpha)
         return
+    
+    def step_adam(self,alpha, j):
+        """
+        Perform a gradient descent step for each layer,
+        but only if it is of the class LinearLayer.
+        """
+        for layer in self.layers:
+            #Check if layer is of class a class that has parameters
+            if isinstance(layer,(LinearLayer,EmbedPosition,FeedForward,Attention)):
+                layer.step_adam(alpha, j)
+        return
