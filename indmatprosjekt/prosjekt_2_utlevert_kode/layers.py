@@ -82,7 +82,6 @@ class Attention(Layer):
         prod = np.einsum('bad,ds,sq,bqk -> bak',self.x_T,self.w_Q.T, self.w_K, x, optimize=True)
         A = self.softmax.forward(prod + D)
         self.A = A
-        print(f"Shape of A: {A.shape}")
         # prod2 = self.w_O.T @ self.w_V @ x @ self.A
         prod2 = np.einsum('dk, kd, bds, bsn -> bdn', self.w_O.T, self.w_V, x, A, optimize=True)
         x_l = x + prod2
@@ -96,10 +95,8 @@ class Attention(Layer):
         """
         # g_OV = self.w_V.T @ self.w_O @ grad remove later
         g_OV = np.einsum("dk,kd,bdn -> bdn", self.w_V.T, self.w_O, grad)
-        print(f"g_OV: {g_OV.shape}")
         g_S_int = np.einsum("bnd, bdk -> bnk", self.x_T, g_OV)
         g_S = self.softmax.backward(g_S_int)
-        print(f"g_S: {g_S.shape}")
 
         A_T = np.transpose(self.A,(0,2,1))
         g_S_T = np.transpose(g_S,(0,2,1))
@@ -120,7 +117,6 @@ class Softmax(Layer):
 
     
     def forward(self,x):
-        #print(f"softmax input shape: {x.shape}")
         P = np.exp(x - x.max(axis=1, keepdims=True))
         self.P = P
         Q = np.sum(P, axis=1, keepdims=True)
@@ -131,12 +127,6 @@ class Softmax(Layer):
 
 
     def backward(self,grad):
-        print(f"z_l:{self.z_l.shape}")
-        print(f"grad: {grad.shape}") # 6,8,6
-        print(f"P: {self.P.shape}")
-        print(f"Q: {self.Q.shape}")
-
-
         return grad * self.z_l - np.sum(grad * (self.P / (self.Q * self.Q + self.epsilon)), axis=0, keepdims=True) * self.P
 
 
@@ -156,13 +146,10 @@ class CrossEntropy(Layer):
         """
         Your code here
         """
-        b, m, n = np.shape(x)
-        #print(y.shape[-1])
+        b, m, n = np.shape(x)        
         self.x_tilde = x
         x_trunc = self.x_tilde[:,:,-y.shape[-1]:] #Truncate x to be same size as y
         Y = onehot(y,m)
-        print(f"onehotshape: {Y.shape}")
-        print(f"x shape: {x.shape}")
         self.x = x_trunc
         self.Y = Y
         ones = np.ones(m)
@@ -175,7 +162,6 @@ class CrossEntropy(Layer):
         n = self.x_tilde.shape[-1]
         Z = np.zeros_like(self.x_tilde)
         Z[:,:,-self.Y.shape[-1]:] = self.Y
-        print(Z[:,:,0])
         return -1/n*(Z/(self.x_tilde+self.epsilon))
     
 
@@ -316,8 +302,6 @@ class EmbedPosition(Layer):
 
         #Compute gradient (average over B batches) of loss wrt positional embedding w:
         self.params['Wp']['d'] = np.zeros_like(grad[0]) # Kanskje dirty fix
-        print(f"wpd shape: {self.params['Wp']['d'].shape}")
-        print(f"grad shape: {grad.shape}")
         self.params['Wp']['d'] += np.sum(grad,axis=0)/b
 
         #Use backwards pass of the linear layer
