@@ -51,10 +51,10 @@ class Attention(Layer):
         w_O = np.random.randn(k, d)*init_scale
         w_V = np.random.randn(k, d)*init_scale
 
-        self.params = {"w":{'w_Q':w_Q,'d':None}}
-        self.params = {"w":{'w_K':w_K,'d':None}}
-        self.params = {"w":{'w_O':w_O,'d':None}}
-        self.params = {"w":{'w_V':w_V,'d':None}}
+        self.params = {'w_Q':{'w':w_Q,'d':None}, 
+                       'w_K':{'w':w_K,'d':None}, 
+                       'w_O':{'w':w_O,'d':None}, 
+                       'w_V':{'w':w_V,'d':None}}
         return
 
         
@@ -74,11 +74,14 @@ class Attention(Layer):
         # Adjusting param size to input
         n = x.shape[-1]
 
+        for param in self.params:
+            print(param)
+
         # get w-s from dictionary
-        w_Q = self.params['w']['w_Q']
-        w_K = self.params['w']['w_K']
-        w_O = self.params['w']['w_O']
-        w_V = self.params['w']['w_V']
+        w_Q = self.params['w_Q']['w']
+        w_K = self.params['w_K']['w']
+        w_O = self.params['w_O']['w']
+        w_V = self.params['w_V']['w']
 
         self.x_T = np.transpose(x, axes=(0,2,1))
 
@@ -98,8 +101,13 @@ class Attention(Layer):
         """
         Your code here
         """
+        w_Q = self.params['w_Q']['w']
+        w_K = self.params['w_K']['w']
+        w_O = self.params['w_O']['w']
+        w_V = self.params['w_V']['w']
+        
         # g_OV = self.w_V.T @ self.w_O @ grad remove later
-        g_OV = np.einsum("dk,kd,bdn -> bdn", self.w_V.T, self.w_O, grad)
+        g_OV = np.einsum("dk,kd,bdn -> bdn", w_V.T, w_O, grad)
         print(f"g_OV: {g_OV.shape}")
         g_S_int = np.einsum("bnd, bdk -> bnk", self.x_T, g_OV)
         g_S = self.softmax.backward(g_S_int)
@@ -108,8 +116,8 @@ class Attention(Layer):
         A_T = np.transpose(self.A,(0,2,1))
         g_S_T = np.transpose(g_S,(0,2,1))
         prod = np.einsum("bdn, bnm -> bdm", g_OV, A_T) # g_OV @  self.A.T
-        prod2 = np.einsum("dk,ks,bsn,bnm -> bdm", self.w_K.T, self.w_Q, self.x, g_S) #self.w_K.T @ self.w_Q @ self.x @ g_S
-        prod3 = np.einsum("dk, ks, bsn, bnm -> bdm", self.w_Q.T, self.w_K, self.x, g_S_T) # self.w_Q.T @ self.w_K @ self.x @ g_S.T
+        prod2 = np.einsum("dk,ks,bsn,bnm -> bdm", w_K.T, w_Q, self.x, g_S) #self.w_K.T @ self.w_Q @ self.x @ g_S
+        prod3 = np.einsum("dk, ks, bsn, bnm -> bdm", w_Q.T, w_K, self.x, g_S_T) # self.w_Q.T @ self.w_K @ self.x @ g_S.T
         bA_l = grad + prod + prod2 + prod3
         return bA_l
     
