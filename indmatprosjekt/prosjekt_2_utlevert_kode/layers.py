@@ -132,10 +132,10 @@ class Attention(Layer):
         b = self.x.shape[0]
         grad_T = np.transpose(grad, (0,2,1))
 
-        self.params['W_Q']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_K, self.x, g_S_T, self.x_T)/b
-        self.params['W_K']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_Q, self.x, g_S, self.x_T)/b
-        self.params['W_O']['d'] = np.einsum('kd, bdn, nm, bme ->ke', w_V, self.x, self.A, grad_T)/b
-        self.params['W_V']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_O, grad, A_T, self.x_T)/b
+        self.params['w_Q']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_K, self.x, g_S_T, self.x_T)/b
+        self.params['w_K']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_Q, self.x, g_S, self.x_T)/b
+        self.params['w_O']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_V, self.x, self.A, grad_T)/b
+        self.params['w_V']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_O, grad, A_T, self.x_T)/b
 
         return bA_l
     
