@@ -82,6 +82,7 @@ class Attention(Layer):
         prod = np.einsum('bad,ds,sq,bqk -> bak',self.x_T,self.w_Q.T, self.w_K, x, optimize=True)
         A = self.softmax.forward(prod + D)
         self.A = A
+        print(A.shape)
         # prod2 = self.w_O.T @ self.w_V @ x @ self.A
         prod2 = np.einsum('dk, kd, bds, bsn -> bdn', self.w_O.T, self.w_V, x, A, optimize=True)
         x_l = x + prod2
@@ -95,7 +96,9 @@ class Attention(Layer):
         """
         
         g_OV = self.w_V.T @ self.w_O @ grad
+        print(f"g_OV: {g_OV.shape}")
         g_S = self.softmax.backward(self.x_T @ g_OV)
+        print(f"g_S: {g_S.shape}")
         bA_l = grad + g_OV @  self.A.T + self.w_K.T @ self.w_Q @ self.x @ g_S + self.w_Q.T @ self.w_K @ self.x @ g_S.T
         return bA_l
     
@@ -110,7 +113,7 @@ class Softmax(Layer):
 
     
     def forward(self,x):
-        print(f"softmax input shape: {x.shape}")
+        #print(f"softmax input shape: {x.shape}")
         P = np.exp(x - x.max(axis=1, keepdims=True))
         self.P = P
         Q = np.sum(P, axis=1, keepdims=True)
@@ -147,10 +150,12 @@ class CrossEntropy(Layer):
         Your code here
         """
         b, m, n = np.shape(x)
-        print(y.shape[-1])
-        x = x[:,:,:y.shape[-1]] #Truncate x to be same size as y
+        #print(y.shape[-1])
+        self.x_tilde = x
+        x = self.x_tilde[:,:,-y.shape[-1]:] #Truncate x to be same size as y
         Y = onehot(y,m)
         print(f"onehotshape: {Y.shape}")
+        print(f"x shape: {x.shape}")
         self.x = x
         self.Y = Y
         ones = np.ones(m)
