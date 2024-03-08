@@ -121,24 +121,24 @@ class Attention(Layer):
 
 
         # g_OV = self.w_V.T @ self.w_O @ grad remove later
-        g_OV = np.einsum("dk,kd,bdn -> bdn", w_V.T, w_O, grad)
+        g_OV = np.einsum("dk,kd,bdn -> bdn", w_V.T, w_O, grad, optimize=True)
         g_S_int = np.einsum("bnd, bdk -> bnk", self.x_T, g_OV)
         g_S = self.softmax.backward(g_S_int)
 
         A_T = np.transpose(self.A,(0,2,1))
         g_S_T = np.transpose(g_S,(0,2,1))
-        prod = np.einsum("bdn, bnm -> bdm", g_OV, A_T) # g_OV @  self.A.T
-        prod2 = np.einsum("dk,ks,bsn,bnm -> bdm", w_K.T, w_Q, self.x, g_S) #self.w_K.T @ self.w_Q @ self.x @ g_S
-        prod3 = np.einsum("dk, ks, bsn, bnm -> bdm", w_Q.T, w_K, self.x, g_S_T) # self.w_Q.T @ self.w_K @ self.x @ g_S.T
+        prod = np.einsum("bdn, bnm -> bdm", g_OV, A_T, optimize=True) # g_OV @  self.A.T
+        prod2 = np.einsum("dk,ks,bsn,bnm -> bdm", w_K.T, w_Q, self.x, g_S, optimize=True) #self.w_K.T @ self.w_Q @ self.x @ g_S
+        prod3 = np.einsum("dk, ks, bsn, bnm -> bdm", w_Q.T, w_K, self.x, g_S_T, optimize=True) # self.w_Q.T @ self.w_K @ self.x @ g_S.T
         bA_l = grad + prod + prod2 + prod3
 
         b = self.x.shape[0]
         grad_T = np.transpose(grad, (0,2,1))
 
-        self.params['w_Q']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_K, self.x, g_S_T, self.x_T)/b
-        self.params['w_K']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_Q, self.x, g_S, self.x_T)/b
-        self.params['w_O']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_V, self.x, self.A, grad_T)/b
-        self.params['w_V']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_O, grad, A_T, self.x_T)/b
+        self.params['w_Q']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_K, self.x, g_S_T, self.x_T, optimize=True)/b
+        self.params['w_K']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_Q, self.x, g_S, self.x_T, optimize=True)/b
+        self.params['w_O']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_V, self.x, self.A, grad_T, optimize=True)/b
+        self.params['w_V']['d'] = np.einsum('kd, bdn, bnm, bme ->ke', w_O, grad, A_T, self.x_T, optimize=True)/b
 
         return bA_l
     
@@ -235,7 +235,7 @@ class LinearLayer(Layer):
         
         #Return output of layer
         #y = w@x
-        y = np.einsum('od,bdn->bon',self.params["w"]['w'],x)
+        y = np.einsum('od,bdn->bon',self.params["w"]['w'],x, optimize=True)
         return y
         
     def backward(self,grad):
@@ -249,11 +249,11 @@ class LinearLayer(Layer):
 
         #Compute gradient (average over B batches) of loss wrt weight w: 
         #dL/dw = (1/B)*sum_b^B (grad_b@x_b^T)
-        self.params['w']['d'] = np.einsum('bon,bdn->od',grad,self.x)/b
+        self.params['w']['d'] = np.einsum('bon,bdn->od',grad,self.x, optimize=True)/b
 
         #Return gradient of loss wrt input of layer
         #dL/dw = w@grad.T
-        return np.einsum('od,bon->bdn',self.params['w']['w'],grad)
+        return np.einsum('od,bon->bdn',self.params['w']['w'],grad, optimize=True)
     
 
 class Relu(Layer):
