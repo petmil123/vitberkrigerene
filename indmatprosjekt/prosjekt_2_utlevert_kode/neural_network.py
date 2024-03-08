@@ -31,8 +31,7 @@ class NeuralNetwork():
     
     def step_gd(self,alpha):
         """
-        Perform a gradient descent step for each layer,
-        but only if it is of the class LinearLayer.
+        Perform a gradient descent step for each layer
         """
         for layer in self.layers:
             #Check if layer is of class a class that has parameters
@@ -42,8 +41,7 @@ class NeuralNetwork():
     
     def step_adam(self,alpha, j):
         """
-        Perform a gradient descent step for each layer,
-        but only if it is of the class LinearLayer.
+        Perform an adam step for each layer
         """
         for layer in self.layers:
             #Check if layer is of class a class that has parameters
