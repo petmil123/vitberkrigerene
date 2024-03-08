@@ -35,7 +35,7 @@ def get_xy_sort(length,num_ints=3):
     return x,y
 
 
-def get_train_test_sorting(length, num_ints, samples_per_batch,n_batches_train, n_batches_test):
+def get_train_test_sorting(length, num_ints, samples_per_batch,n_batches_train, n_batches_test = 1):
     """
     Generates a dataset for sorting (see docstring of get_xy_sort() for details)
     The dataset is split into a training and test set.
