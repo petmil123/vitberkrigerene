@@ -107,6 +107,9 @@ class Attention(Layer):
         prod2 = np.einsum('dk, kd, bds, bsn -> bdn', w_O.T, w_V, x, A, optimize=True)
         x_l = x + prod2
         return x_l
+    
+    # def step_adam(self, alpha, j):
+        # super().step_adam(alpha, j)
 
 
     def backward(self,grad):
@@ -122,7 +125,7 @@ class Attention(Layer):
 
         # g_OV = self.w_V.T @ self.w_O @ grad remove later
         g_OV = np.einsum("dk,kd,bdn -> bdn", w_V.T, w_O, grad, optimize=True)
-        g_S_int = np.einsum("bnd, bdk -> bnk", self.x_T, g_OV)
+        g_S_int = np.einsum("bnd, bda -> bna", self.x_T, g_OV, optimize=True)
         g_S = self.softmax.backward(g_S_int)
 
         A_T = np.transpose(self.A,(0,2,1))
@@ -196,10 +199,11 @@ class CrossEntropy(Layer):
 
 
     def backward(self):
-        n = self.x_tilde.shape[-1]
+        b, _, n = self.x_tilde.shape
+
         Z = np.zeros_like(self.x_tilde)
         Z[:,:,-self.Y.shape[-1]:] = self.Y
-        return -1/n*(Z/(self.x_tilde+self.epsilon))
+        return -1/(b*n)*(Z/(self.x_tilde+self.epsilon))
     
 
 
