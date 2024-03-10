@@ -2,7 +2,7 @@ from neural_network import *
 from layers import *
 
 
-def trainModel(nn: NeuralNetwork, data: dict, iterations: int, loss: Layer, m: int, step_size: float = 0.01, ) -> np.ndarray:
+def trainModel(nn: NeuralNetwork, data: dict, iterations: int, loss: Layer, m: int, slice_number: int, step_size: float = 0.01, ) -> np.ndarray:
     """Inputs a neural network and required parameters for training, and performs training of the network.
     Returns an array with the mean loss of each iteration"""
 
@@ -19,7 +19,8 @@ def trainModel(nn: NeuralNetwork, data: dict, iterations: int, loss: Layer, m: i
             X = onehot(x,m)
             Z = nn.forward(X)
 
-            losses[j,i] = loss.forward(Z,y)
+            #losses[j,i] = loss.forward(Z, y)
+            losses[j,i] = loss.forward(Z[:,-slice_number:],y[:,-slice_number:]) #lagt til [:, -slice_number:]
             dLdZ = loss.backward()
             nn.backward(dLdZ)
             nn.step_adam(step_size, j+1)

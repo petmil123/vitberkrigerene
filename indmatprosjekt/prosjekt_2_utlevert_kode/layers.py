@@ -150,7 +150,6 @@ class Attention(Layer):
 class Softmax(Layer):
 
     def __init__(self):
-        #TODO: Finne ut om vi må sette noen parametre her.
         self.epsilon = 1e-8
         return
 
@@ -166,16 +165,13 @@ class Softmax(Layer):
 
 
     def backward(self,grad):
-        return grad * self.z_l - np.sum(grad * (self.P / (self.Q * self.Q + self.epsilon)), axis=1, keepdims=True) * self.P
+        return grad * self.z_l - (np.sum(grad * (self.P / (self.Q * self.Q + self.epsilon)), axis=1, keepdims=True) * self.P)
 
 
 
 class CrossEntropy(Layer):
 
     def __init__(self):
-        """
-        Your code here
-        """
         self.epsilon = 1e-8
         return
 
@@ -183,7 +179,7 @@ class CrossEntropy(Layer):
 
     def forward(self, x, y):
         """
-        Your code here
+        
         """
         b, m, n = np.shape(x)        
         self.x_tilde = x
@@ -194,7 +190,7 @@ class CrossEntropy(Layer):
         ones = np.ones(m)
         #p = np.transpose(ones) @ np.multiply(x_trunc, Y)
         p = np.sum(x_trunc*Y, axis=1)
-        q = -np.log(p + self.epsilon)
+        q = -np.log(p) #tok vekk +self.epsilon
         return np.mean(q)
 
 
@@ -202,8 +198,8 @@ class CrossEntropy(Layer):
         b, _, n = self.x_tilde.shape
 
         Z = np.zeros_like(self.x_tilde)
-        Z[:,:,-self.Y.shape[-1]:] = self.Y
-        return -1/(b*n)*(Z/(self.x_tilde+self.epsilon))
+        Z[:,:,-self.Y.shape[-1]:] = self.Y 
+        return -1/(b*n)*(Z/(self.x_tilde + self.epsilon)) #tok vekk *b
     
 
 
