@@ -3,8 +3,4 @@ Når du har gjort noe, skriv Done og navn etter punktet
 Om man legger til nytt punkt, sett initialer foran
 _______________________________________________________
 
-Hvor og hvordan skal Adam implementeres? Ref. digital mattelab
-Har vi noen som helst interesse i å la y < x? Skal ikke de alltid være like?
-Hvordan er det tenkt at vi skal tåle varierende størrelse på input/output? 
-(Altså etter at vi har trent modellen, da skal jo ting bygges opp kjøring for kjøring.)
-Kan vi se vekk fra dette i backward passes siden backpropagation alltid gjøres på treningsdata?
+Dumpe loss
