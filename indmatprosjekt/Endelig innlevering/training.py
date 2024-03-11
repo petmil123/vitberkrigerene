@@ -1,7 +1,6 @@
 from neural_network import *
 from layers import *
 
-
 def trainModel(nn: NeuralNetwork, data: dict, iterations: int, loss: Layer, m: int, slice_number: int, step_size: float = 0.01,verbose =False ) -> np.ndarray:
     """Inputs a neural network and required parameters for training, and performs training of the network.
     Returns an array with the mean loss of each iteration. If verbose is true, the value of the loss function gets printed
@@ -46,5 +45,3 @@ def predict(nn: NeuralNetwork, xs: dict, r:int, m:int):
         y[i,:,:] = x[:,-r:]
 
     return y
-
-            
