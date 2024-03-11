@@ -187,7 +187,6 @@ class CrossEntropy(Layer):
         Y = onehot(y,m)
         self.x = x_trunc
         self.Y = Y
-        ones = np.ones(m)
         #p = np.transpose(ones) @ np.multiply(x_trunc, Y)
         p = np.sum(x_trunc*Y, axis=1)
         q = -np.log(p) #tok vekk +self.epsilon
