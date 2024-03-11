@@ -42,7 +42,7 @@ def predict(nn: NeuralNetwork, xs: dict, r:int, m:int):
             print(x.shape)
             toAppend =Z[:,-1:]
             x = np.append(x, toAppend, axis=1)
-        y[i,:,:] = x[:,:-r]
+        y[i,:,:] = x[:,:-r,:]
     return y
 
 
