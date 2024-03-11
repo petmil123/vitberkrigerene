@@ -25,7 +25,7 @@ def trainModel(nn: NeuralNetwork, data: dict, iterations: int, loss: Layer, m: i
             nn.backward(dLdZ)
             nn.step_adam(step_size, j+1)
         print("Iterasjon ", str(j), " L = ",np.mean(losses[j,:]), " gradient = ", np.linalg.norm(dLdZ))
-    return np.mean(losses, axis=1)
+    return np.mean(losses, axis=0)
 
 def predict(nn: NeuralNetwork, xs: dict, r:int, m:int):
     
