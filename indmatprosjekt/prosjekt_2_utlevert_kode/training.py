@@ -20,7 +20,7 @@ def trainModel(nn: NeuralNetwork, data: dict, iterations: int, loss: Layer, m: i
             Z = nn.forward(X)
 
             #losses[j,i] = loss.forward(Z, y)
-            losses[j,i] = loss.forward(Z[:,-slice_number:],y[:,-slice_number:]) #lagt til [:, -slice_number:]
+            losses[j,i] = loss.forward(Z,y[:,-slice_number:]) #lagt til [:, -slice_number:]
             dLdZ = loss.backward()
             nn.backward(dLdZ)
             nn.step_adam(step_size, j+1)
