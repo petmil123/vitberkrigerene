@@ -39,6 +39,7 @@ class Layer:
             self.params[param]['w'] -= alpha*self.params[param]['d']
     
     def step_adam(self, alpha, j):
+        """Performs an adam step given learning rate and iteration number"""
         for param in self.params:
             self.params[param]['m'] = self.beta1*self.params[param]['m'] + (1-self.beta1)*self.params[param]['d'] # M_j = beta1*M_j-1 + (1-beta1)*G_j
             self.params[param]['v'] = self.beta2*self.params[param]['v'] + (1-self.beta2)*(self.params[param]['d']*self.params[param]['d']) # V_j = beta2*V_j-1 + (1-beta2)*(G_j*G_J)
@@ -53,11 +54,12 @@ class Layer:
 
 
 class Attention(Layer):
+    """Class that implements an attention layer"""
     def __init__(self, d, k, init_scale = 0.1):
-        """
+        """Inputs:
         d: depth
         k: input length (number of digits in x)
-        """
+        init_scale: scale of random numbers"""
         self.softmax = Softmax()
 
         #Initalize w-s
@@ -77,11 +79,10 @@ class Attention(Layer):
         
 
     def forward(self,x):
-        """
-        Input: x, shape (b,d,n) where b, d always constant, but n <= n_max
+        """executes an attention layer
+        Input: x: shape (b,d,n) where b, d always constant, but n <= n_max
 
-        Output: x_l, shape (b,d,n), same as input
-        """
+        Output: x_l: shape (b,d,n), same as input"""
         n = x.shape[-1]
         #Initialize D
         D = np.zeros( (n, n) )
@@ -106,17 +107,14 @@ class Attention(Layer):
         # prod2 = self.w_O.T @ self.w_V @ x @ self.A
         prod2 = np.einsum('dk, kd, bds, bsn -> bdn', w_O.T, w_V, x, A, optimize=True)
         x_l = x + prod2
+
         return x_l
-    
-    # def step_adam(self, alpha, j):
-        # super().step_adam(alpha, j)
 
 
     def backward(self,grad):
-        #TODO: Gjør skikkelig
-        """
-        Your code here
-        """
+        """Calculates the derivative of an attention layer
+        Input: grad: Gradient of loss function
+        Output: Gradient of layer"""
         w_Q = self.params['w_Q']['w']
         w_K = self.params['w_K']['w']
         w_O = self.params['w_O']['w']
@@ -148,6 +146,7 @@ class Attention(Layer):
 
 
 class Softmax(Layer):
+    """Class that implements a Softmax layer"""
 
     def __init__(self):
         self.epsilon = 1e-8
@@ -155,21 +154,28 @@ class Softmax(Layer):
 
     
     def forward(self,x):
-        P = np.exp(x - x.max(axis=1, keepdims=True))
-        self.P = P
-        Q = np.sum(P, axis=1, keepdims=True)
-        self.Q = Q
-        z_l =  P / (Q + self.epsilon)
-        self.z_l = z_l
-        return z_l
+        """executes softmax on a matrix x
+        
+        Input: x: np array of shape (b,m,n)
+        Output: z_l: np array of shape (b,m,n), satisfying properties of a probability distribution"""
+        self.P = np.exp(x - x.max(axis=1, keepdims=True))
+        self.Q = np.sum(self.P, axis=1, keepdims=True)
+        self.z_l =  self.P / (self.Q + self.epsilon)
+
+        return self.z_l
 
 
     def backward(self,grad):
+        """Inputs a gradient array and updates derivatives for the layer, and returns the derivative
+        Input: grad: gradient of the loss function.
+        Output: dL/dz"""
+
         return grad * self.z_l - (np.sum(grad * (self.P / (self.Q * self.Q + self.epsilon)), axis=1, keepdims=True) * self.P)
 
 
 
 class CrossEntropy(Layer):
+    """Class that implements a CrossEntropy layer"""
 
     def __init__(self):
         self.epsilon = 1e-8
@@ -178,27 +184,32 @@ class CrossEntropy(Layer):
         
 
     def forward(self, x, y):
-        """
-        
-        """
+        """Calculates the loss with Cross-entropy
+        Input: 
+        x: np array of shape (b,m,n) probability distribution from model
+        y: np array of shape (b,n) expected output
+        Output:"""
         b, m, n = np.shape(x)        
         self.x_tilde = x
         x_trunc = self.x_tilde[:,:,-y.shape[-1]:] #Truncate x to be same size as y
         Y = onehot(y,m)
         self.x = x_trunc
         self.Y = Y
-        #p = np.transpose(ones) @ np.multiply(x_trunc, Y)
         p = np.sum(x_trunc*Y, axis=1)
-        q = -np.log(p) #tok vekk +self.epsilon
+        q = -np.log(p + self.epsilon)
+
         return np.mean(q)
 
 
     def backward(self):
+        """Calculates the derivative of the loss function wrt the probability distribution
+        Output: dL/dY_hat"""
         b, _, n = self.x_tilde.shape
 
         Z = np.zeros_like(self.x_tilde)
         Z[:,:,-self.Y.shape[-1]:] = self.Y 
-        return -1/(b*n)*(Z/(self.x_tilde + self.epsilon)) #tok vekk *b
+
+        return -1/(b*n)*(Z/(self.x_tilde + self.epsilon))
     
 
 
@@ -235,13 +246,14 @@ class LinearLayer(Layer):
         #Return output of layer
         #y = w@x
         y = np.einsum('od,bdn->bon',self.params["w"]['w'],x, optimize=True)
+
         return y
         
     def backward(self,grad):
         """
         Performs backward pass.
 
-        grad: gradient of loss wrt output of layer, shape (batch_size, output_size, n) = (b,o,n)
+        grad: gradient of loss function, shape (batch_size, output_size, n) = (b,o,n)
         """
 
         b = grad.shape[0]
@@ -265,17 +277,20 @@ class Relu(Layer):
 
     def relu(self,x):
         #relu(x) = max(0,x)
+
         return np.maximum(np.zeros(x.shape), x)
 
     def forward(self,x):
         
         #Store input for backwards pass
         self.x = x
+
         return self.relu(x)
 
     def backward(self,grad):
 
         #dL/dx = grad * relu'(x)
+
         return grad * np.where(self.x > 0, np.ones_like(self.x), np.zeros_like(self.x))
 
 
@@ -320,6 +335,7 @@ class EmbedPosition(Layer):
         #We assume that n < n_max
         n = X.shape[-1]
         z_0 = self.embed.forward(X) + self.params['Wp']['w'][:,:n]
+
         return z_0
     
     def backward(self,grad):
