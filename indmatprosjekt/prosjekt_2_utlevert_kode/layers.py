@@ -280,7 +280,7 @@ class Relu(Layer):
 
 
 
-class EmbedPosition(Layer):
+class Position(Layer):
     def __init__(self,n_max,m,d,init_scale=1e-1):   
 
         """
