@@ -3,3 +3,41 @@ Når du har gjort noe, skriv Done og navn etter punktet
 Om man legger til nytt punkt, sett initialer foran
 _______________________________________________________
 
+Overordnet: All plots should be discussed, and they must have physical units
+when necessary. 
+Your code should be well-documented and structured
+
+1a) Calculate trajectory for t \in [0,50] using Heun
+Try different timesteps and compare results by plotting trajectories for different timesteps
+in same plot
+What seems like a reasonable timestep?
+What happens if you double the time? Is same timestep good?
+
+1b)
+100 initial conditions, calculate trajectory for each particle for t \in [0,10]
+In the same plot, show scatters of initial and final pos, as well as trajectories that
+connect.
+
+1c)
+Test implementation by measuring time to run for different numbers of particles, plot of runtime as function of N_p
+Why is the run time approx. constant for small N_p?
+
+2a)
+Choose suitable N_p and transport particles over 5 days. Plot trajectories in xy-coords
+
+2b)
+Use attached code to plot trajectories on map.
+Using figs 1 and 2, try selecting other positions, and repeat simulation
+
+3)
+Use this to modify the behaviour of the particles s.t. they stop if they reach land
+
+3a)
+Use suitable values for N_p and justify choice.
+Make plot that shows final positions of stranded particles,
+for example scatter to show final pos, with different colors for stranded and seaborn parts.
+Include plot showing percentage of stranded particles as function of time
+
+3b)
+Try different windage factors and how they affect results, for example
+percentage of stranded after three days as function of f_w.
