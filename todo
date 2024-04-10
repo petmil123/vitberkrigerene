@@ -41,3 +41,7 @@ Include plot showing percentage of stranded particles as function of time
 3b)
 Try different windage factors and how they affect results, for example
 percentage of stranded after three days as function of f_w.
+
+
+TODOS:
+Få plotting av geografiske data inn i en funksjon, slik at mengden kode reduseres.
